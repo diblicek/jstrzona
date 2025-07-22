@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klientská Sekce - Janáčkovo Stromořadí</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Updated background to use the provided image with a darkening overlay */
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://www.janackovostromoradi.cz/static/917797e598d61442198a3fd7be15e2c5/5267c/bg-img.jpg');
+            background-size: cover; /* Cover the entire background */
+            background-repeat: no-repeat; /* Do not repeat the image */
+            background-position: center center; /* Center the image */
+            background-attachment: fixed; /* Keep background fixed when scrolling */
+            color: #333; /* Default text color for better readability against background */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Simple spinner for loading state */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #4CAF50; /* Green color */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .active-link {
+            color: #166534; /* Darker green for active link text */
+            background-color: #dcfce7; /* Light green background for active link */
+            font-weight: 600; /* Semi-bold for active link */
+        }
+
+        /* Ensure content blocks have a solid background for readability */
+        .bg-white {
+            background-color: rgba(255, 255, 255, 0.95); /* Slightly transparent white for content blocks */
+        }
+        #loginPageContainer .bg-white {
+            background-color: rgba(255, 255, 255, 1); /* Solid white for login page */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Login Page Container (Initially visible) -->
+    <div id="loginPageContainer" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <h2 class="text-3xl font-bold text-center text-green-800 mb-6">Přihlášení do klientské sekce</h2>
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Uživatelské jméno / Email:</label>
+                    <input type="text" id="username" class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-green-500 transition duration-300" placeholder="demo">
+                </div>
+                <div>
+                    <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Heslo:</label>
+                    <input type="password" id="password" class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-green-500 transition duration-300" placeholder="demo">
+                </div>
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition duration-300 w-full">
+                    Přihlásit se
+                </button>
+                <p class="text-center text-gray-600 text-sm mt-4">
+                    Nemáte účet? <a href="#" class="text-green-600 hover:underline">Zaregistrujte se zde</a>
+                </p>
+                <!-- Demo message updated here -->
+                <p class="text-center text-red-500 text-sm mt-2 font-semibold">
+                    (Pro demo přihlášení použijte: uživatelské jméno: <span class="font-bold">demo</span>, heslo: <span class="font-bold">demo</span>)
+                </p>
+            </form>
+            <div id="loginErrorMessage" class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
+                Nesprávné uživatelské jméno nebo heslo.
+            </div>
+        </div>
+    </div>
+
+    <!-- Client App Container (Initially hidden) -->
+    <div id="clientAppContainer" class="min-h-screen flex flex-col hidden">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-green-700 to-green-900 text-white p-4 shadow-lg">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold rounded-lg p-2">Janáčkovo Stromořadí</h1>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#" class="hover:text-green-200 transition duration-300 rounded-lg p-2">Úvod</a>
+                    <a href="#" class="hover:text-green-200 transition duration-300 rounded-lg p-2">O nás</a>
+                    <a href="#" class="hover:text-green-200 transition duration-300 rounded-lg p-2">Kontakt</a>
+                </nav>
+                <div class="flex items-center space-x-4">
+                    <!-- Profile picture/initials -->
+                    <div class="relative group">
+                        <div id="profileImageContainer" class="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-800 font-bold text-lg cursor-pointer overflow-hidden shadow-md">
+                            <img id="profilePhoto" src="" alt="Profilová fotka" class="w-full h-full object-cover hidden">
+                            <span id="profileInitials" class="">JN</span>
+                        </div>
+                        <input type="file" id="profileImageUpload" accept="image/*" class="hidden">
+                        <button id="uploadPhotoButton" class="absolute -bottom-1 -right-1 bg-green-600 text-white rounded-full p-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </button>
+                    </div>
+                    <button id="menuButton" class="md:hidden text-white focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden mt-4 space-y-2">
+                <a href="#" class="block px-4 py-2 text-sm hover:bg-green-800 rounded-lg">Úvod</a>
+                <a href="#" class="block px-4 py-2 text-sm hover:bg-green-800 rounded-lg">O nás</a>
+                <a href="#" class="block px-4 py-2 text-sm hover:bg-green-800 rounded-lg">Kontakt</a>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="flex flex-1 flex-col md:flex-row bg-gray-100">
+            <!-- Sidebar Navigation -->
+            <aside class="w-full md:w-64 bg-white p-6 shadow-md rounded-lg m-4 md:m-6">
+                <h2 class="text-xl font-semibold mb-6 text-green-800">Klientská Sekce</h2>
+
+                <!-- Broker Photo and Name at the top of the sidebar -->
+                <div class="flex flex-col items-center mb-6 p-4 bg-green-50 rounded-lg shadow-sm">
+                    <!-- Dominika's actual photo URL -->
+                    <img src="https://raw.githubusercontent.com/google/gemini-canvas-sample-apps/main/Domca-LinkedIn-scaled-e1705529440283-1024x864.jpg" onerror="this.onerror=null;this.src='https://placehold.co/100x100/A7F3D0/10B981?text=Dominika';" alt="Fotka makléřky Dominiky Opělové" class="w-24 h-24 rounded-full object-cover shadow-md border-2 border-green-300 mb-3">
+                    <p class="text-lg font-semibold text-green-800">Dominika Opělová</p>
+                    <p class="text-sm text-gray-600">Váš makléř</p>
+                </div>
+
+                <nav class="space-y-4">
+                    <a href="#" id="navOverview" class="flex items-center space-x-3 text-gray-700 hover:text-green-700 hover:bg-green-50 p-3 rounded-lg transition duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        <span>Přehled</span>
+                    </a>
+                    <a href="#" id="navProfile" class="flex items-center space-x-3 text-gray-700 hover:text-green-700 hover:bg-green-50 p-3 rounded-lg transition duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <span>Můj Profil</span>
+                    </a>
+                    <a href="#" id="navContracts" class="flex items-center space-x-3 text-gray-700 hover:text-green-700 hover:bg-green-50 p-3 rounded-lg transition duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        <span>Moje Smlouvy</span>
+                    </a>
+                    <a href="#" id="navMessages" class="flex items-center space-x-3 text-gray-700 hover:text-green-700 hover:bg-green-50 p-3 rounded-lg transition duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                        <span>Zprávy ✨</span>
+                    </a>
+                    <a href="#" id="navLogout" class="flex items-center space-x-3 text-gray-700 hover:text-green-700 hover:bg-green-50 p-3 rounded-lg transition duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        <span>Odhlásit se</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="flex-1 p-4 md:p-6">
+                <!-- Overview Section (Now "Přehled klientských změn") -->
+                <div id="overviewSection" class="content-section">
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Přehled klientských změn</h2>
+                        <p class="text-gray-600">Zde naleznete důležité informace týkající se vašich změn, výběru zařizovacích předmětů a dokumentace.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Card 1: Katalog zařizovacích předmětů -->
+                        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                            <h3 class="text-xl font-semibold text-green-700 mb-3">Katalog zařizovacích předmětů</h3>
+                            <p class="text-gray-600 mb-4">Prohlédněte si aktuální katalog zařizovacích předmětů pro váš projekt. Zahrnuje možnosti dlažeb, obkladů, sanity, dveří a podlah.</p>
+                            <a href="#" class="text-green-600 hover:text-green-800 font-medium">Zobrazit katalog &rarr;</a>
+                        </div>
+
+                        <!-- Card 2: Výběr klienta formou dokumentů -->
+                        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                            <h3 class="text-xl font-semibold text-green-700 mb-3">Výběr klienta formou dokumentů</h3>
+                            <p class="text-gray-600 mb-4">Přístup k dokumentům a formulářům pro váš individuální výběr materiálů a prvků.</p>
+                            <!-- Link changed to point to contracts section -->
+                            <a href="#" id="viewClientSelectionDocs" class="text-green-600 hover:text-green-800 font-medium">Zobrazit dokumenty &rarr;</a>
+                        </div>
+
+                        <!-- Card 3: Kontaktovat Makléře -->
+                        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                            <h3 class="text-xl font-semibold text-green-700 mb-3">Kontaktovat Makléře</h3>
+                            <p class="text-gray-600 mb-4">Potřebujete pomoct? Kontaktujte vaši makléřku Dominiku Opělovou.</p>
+                            <a href="#" id="contactBroker" class="text-green-600 hover:text-green-800 font-medium">Zobrazit kontakt &rarr;</a>
+                        </div>
+                    </div>
+
+                    <!-- Blog Section -->
+                    <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Blog z webu Janáčkovo Stromořadí</h3>
+                        <div class="space-y-6">
+                            <!-- Blog Post 1 -->
+                            <div class="border-b border-gray-200 pb-4">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-1">Novinky v Janáčkově Stromořadí: Jarní výsadba</h4>
+                                <p class="text-sm text-gray-500 mb-2">20. července 2025</p>
+                                <p class="text-gray-700">Přečtěte si o našich nejnovějších aktivitách v rámci jarní výsadby a jak přispíváme k zelenějšímu prostředí.</p>
+                                <a href="#" class="text-green-600 hover:underline text-sm mt-2 block">Číst více</a>
+                            </div>
+                            <!-- Blog Post 2 -->
+                            <div class="border-b border-gray-200 pb-4">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-1">Tipy pro údržbu vaší zahrady</h4>
+                                <p class="text-sm text-gray-500 mb-2">15. července 2025</p>
+                                <p class="text-gray-700">Připravili jsme pro vás užitečné tipy, jak se starat o vaši zahradu, aby kvetla po celý rok.</p>
+                                <a href="#" class="text-green-600 hover:underline text-sm mt-2 block">Číst více</a>
+                            </div>
+                            <!-- Blog Post 3 -->
+                            <div class="pb-4">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-1">Představujeme nové projekty</h4>
+                                <p class="text-sm text-gray-500 mb-2">10. července 2025</p>
+                                <p class="text-gray-700">Podívejte se na naše plány do budoucna a nové projekty, které brzy zahájíme.</p>
+                                <a href="#" class="text-green-600 hover:underline text-sm mt-2 block">Číst více</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Section -->
+                <div id="profileSection" class="content-section hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Můj Profil</h2>
+                        <p class="text-gray-600 mb-6">Zde můžete spravovat své osobní údaje a nastavení účtu.</p>
+
+                        <form class="space-y-6">
+                            <div>
+                                <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">Celé jméno</label>
+                                <input type="text" id="fullName" value="Jan Novák" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2">
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Emailová adresa</label>
+                                <input type="email" id="email" value="jan.novak@example.com" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2">
+                            </div>
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Telefonní číslo</label>
+                                <input type="tel" id="phone" value="+420 777 888 999" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2">
+                            </div>
+                            <div>
+                                <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Adresa</label>
+                                <input type="text" id="address" value="Ukázková 123, 100 00 Praha" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2">
+                            </div>
+                            <div class="pt-4 border-t border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-3">Změna hesla</h3>
+                                <div>
+                                    <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-1">Současné heslo</label>
+                                    <input type="password" id="currentPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2">
+                                </div>
+                                <div class="mt-4">
+                                    <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">Nové heslo</label>
+                                    <input type="password" id="newPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2">
+                                </div>
+                                <div class="mt-4">
+                                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Potvrďte nové heslo</label>
+                                    <input type="password" id="confirmPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2">
+                                </div>
+                                <button type="submit" class="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                                    Uložit změny
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Contracts Section -->
+                <div id="contractsSection" class="content-section hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Moje Smlouvy</h2>
+                        <p class="text-gray-600 mb-6">Zde naleznete přehled vašich smluv a možnost jejich stažení.</p>
+
+                        <div class="overflow-x-auto rounded-lg border border-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Číslo Smlouvy
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Typ Smlouvy
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Datum Uzavření
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Stav
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Soubor
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Akce
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            SML-2025-001
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            Kupní Smlouva
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            2025-06-15
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                Aktivní
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <a href="#" class="text-green-600 hover:underline">smlouva_001.pdf</a>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <a href="#" class="text-green-600 hover:text-green-900">Stáhnout</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            SML-2024-050
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            Smlouva o Dílo
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            2024-11-01
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                Ukončeno
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <a href="#" class="text-green-600 hover:underline">smlouva_050.pdf</a>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <a href="#" class="text-green-600 hover:text-green-900">Stáhnout</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            SML-2025-002
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            Nájemní Smlouva
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            2025-07-01
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                Čeká na podpis
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <a href="#" class="text-green-600 hover:underline">smlouva_002.pdf</a>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <a href="#" class="text-green-600 hover:text-green-900">Stáhnout</a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Broker Section -->
+                <div id="brokerSection" class="content-section hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Můj Makléř - Dominika Opělová</h2>
+                        <p class="text-gray-600 mb-6">Zde najdete kontaktní informace na vaši přidělenou makléřku.</p>
+
+                        <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+                            <div class="flex-shrink-0">
+                                <!-- Dominika's actual photo URL -->
+                                <img src="https://raw.githubusercontent.com/google/gemini-canvas-sample-apps/main/Domca-LinkedIn-scaled-e1705529440283-1024x864.jpg" onerror="this.onerror=null;this.src='https://placehold.co/150x150/A7F3D0/10B981?text=Dominika';" alt="Fotka makléřky Dominiky Opělové" class="w-36 h-36 rounded-full object-cover shadow-lg border-4 border-green-200">
+                            </div>
+                            <div class="text-center md:text-left">
+                                <h3 class="text-xl font-semibold text-green-800 mb-2">Dominika Opělová</h3>
+                                <p class="text-gray-700 mb-1">Pozice: Senior Makléřka</p>
+                                <p class="text-700 mb-1">Telefon: <a href="tel:+420777123456" class="text-green-600 hover:underline">+420 777 123 456</a></p>
+                                <p class="text-gray-700 mb-1">Email: <a href="mailto:dominika.opelova@janackovostromoradi.cz" class="text-green-600 hover:underline">dominika.opelova@janackovostromoradi.cz</a></p>
+                                <p class="text-gray-700">Dostupnost: Po-Pá, 9:00 - 17:00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Section (LLM Feature) -->
+                <div id="messagesSection" class="content-section hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Zprávy ✨</h2>
+                        <p class="text-gray-600 mb-4">Zde můžete napsat krátký dotaz nebo nápad a nechat AI vygenerovat podrobnější návrh zprávy.</p>
+
+                        <div class="mb-4">
+                            <label for="messageInput" class="block text-gray-700 text-sm font-bold mb-2">Váš dotaz / téma:</label>
+                            <textarea id="messageInput" class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-green-500 transition duration-300" rows="6" placeholder="Např. Chci se zeptat na stav mé objednávky #12345."></textarea>
+                        </div>
+
+                        <button id="generateMessageButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition duration-300 flex items-center justify-center">
+                            <span id="buttonText">Vygenerovat návrh zprávy ✨</span>
+                            <div id="loadingSpinner" class="spinner ml-3 hidden"></div>
+                        </button>
+
+                        <div id="messageOutput" class="mt-6 p-6 bg-gray-50 rounded-lg border border-gray-200 hidden">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-3">Vygenerovaný návrh:</h3>
+                            <p id="generatedText" class="text-gray-700 whitespace-pre-wrap"></p>
+                        </div>
+                        <div id="errorMessage" class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
+                            Vyskytla se chyba při generování zprávy. Zkuste to prosím znovu.
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white p-4 text-center mt-auto shadow-inner rounded-t-lg">
+            <p class="text-sm">&copy; 2025 Janáčkovo Stromořadí. Všechna práva vyhrazena.</p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM Elements
+        const loginPageContainer = document.getElementById('loginPageContainer');
+        const clientAppContainer = document.getElementById('clientAppContainer');
+        const loginForm = document.getElementById('loginForm');
+        const loginErrorMessage = document.getElementById('loginErrorMessage');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+
+
+        // Client App Elements (These will be defined after clientAppContainer is visible)
+        let menuButton;
+        let mobileMenu;
+
+        let navOverview;
+        let navProfile;
+        let navContracts;
+        let navMessages;
+        let navLogout;
+
+        let overviewSection;
+        let profileSection;
+        let brokerSection;
+        let messagesSection;
+        let contractsSection;
+
+        let contactBrokerCardLink;
+        let viewClientSelectionDocs; // Renamed from viewContractsCardLink
+        let viewContractsCardLink; // This is the original viewContractsCardLink
+
+        let generateMessageButton;
+        let messageInput;
+        let messageOutput;
+        let generatedText;
+        let loadingSpinner;
+        let buttonText;
+        let errorMessage;
+
+        // Profile picture elements
+        let profileImageContainer;
+        let profilePhoto;
+        let profileInitials;
+        let profileImageUpload;
+        let uploadPhotoButton;
+        let fullNameInput;
+
+        // Flag to ensure client app listeners are only initialized once
+        let clientAppListenersInitialized = false;
+
+
+        // --- Functions ---
+
+        // Function to hide all content sections in the client app
+        function hideAllSections() {
+            if (overviewSection) overviewSection.classList.add('hidden');
+            if (profileSection) profileSection.classList.add('hidden');
+            if (brokerSection) brokerSection.classList.add('hidden');
+            if (messagesSection) messagesSection.classList.add('hidden');
+            if (contractsSection) contractsSection.classList.add('hidden');
+        }
+
+        // Function to deactivate all navigation links in the client app
+        function deactivateAllNavLinks() {
+            if (navOverview) navOverview.classList.remove('active-link');
+            if (navProfile) navProfile.classList.remove('active-link');
+            if (navContracts) navContracts.classList.remove('active-link');
+            if (navMessages) navMessages.classList.remove('active-link');
+            if (navLogout) navLogout.classList.remove('active-link');
+        }
+
+        // Function to generate initials from a name
+        function getInitials(name) {
+            if (!name) return '';
+            const parts = name.split(' ').filter(part => part.length > 0);
+            if (parts.length === 0) return '';
+            if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+        }
+
+        // Function to set profile image or initials
+        function setProfileDisplay(imageUrl = null) {
+            // Check if elements exist before trying to access them
+            if (!profilePhoto || !profileInitials || !fullNameInput) {
+                console.warn("Profile display elements not found. Skipping setProfileDisplay.");
+                return;
+            }
+
+            if (imageUrl) {
+                profilePhoto.src = imageUrl;
+                profilePhoto.classList.remove('hidden');
+                profileInitials.classList.add('hidden');
+                localStorage.setItem('userProfileImage', imageUrl); // Persist image
+            } else {
+                const userName = fullNameInput.value || "Jan Novák"; // Use name from profile or default
+                profileInitials.textContent = getInitials(userName);
+                profilePhoto.classList.add('hidden');
+                profileInitials.classList.remove('hidden');
+                localStorage.removeItem('userProfileImage'); // Clear persisted image
+            }
+        }
+
+        // Function to initialize event listeners for elements within the client app
+        function initializeClientAppListeners() {
+            if (clientAppListenersInitialized) return; // Run only once
+
+            // Assign elements after clientAppContainer is visible and rendered
+            // Add checks to ensure elements are found before assigning and adding listeners
+            menuButton = document.getElementById('menuButton');
+            mobileMenu = document.getElementById('mobileMenu');
+
+            navOverview = document.getElementById('navOverview');
+            navProfile = document.getElementById('navProfile');
+            navContracts = document.getElementById('navContracts');
+            navMessages = document.getElementById('navMessages');
+            navLogout = document.getElementById('navLogout');
+
+            overviewSection = document.getElementById('overviewSection');
+            profileSection = document.getElementById('profileSection');
+            brokerSection = document.getElementById('brokerSection');
+            messagesSection = document.getElementById('messagesSection');
+            contractsSection = document.getElementById('contractsSection');
+
+            contactBrokerCardLink = document.getElementById('contactBroker');
+            viewClientSelectionDocs = document.getElementById('viewClientSelectionDocs');
+            viewContractsCardLink = document.getElementById('viewContracts');
+
+            generateMessageButton = document.getElementById('generateMessageButton');
+            messageInput = document.getElementById('messageInput');
+            messageOutput = document.getElementById('messageOutput');
+            generatedText = document.getElementById('generatedText');
+            loadingSpinner = document.getElementById('loadingSpinner');
+            buttonText = document.getElementById('buttonText');
+            errorMessage = document.getElementById('errorMessage');
+
+            profileImageContainer = document.getElementById('profileImageContainer');
+            profilePhoto = document.getElementById('profilePhoto');
+            profileInitials = document.getElementById('profileInitials');
+            profileImageUpload = document.getElementById('profileImageUpload');
+            uploadPhotoButton = document.getElementById('uploadPhotoButton');
+            fullNameInput = document.getElementById('fullName');
+
+
+            // Mobile menu toggle
+            if (menuButton) {
+                menuButton.addEventListener('click', () => {
+                    if (mobileMenu) mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Navigation links in client app
+            if (navOverview) navOverview.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllSections();
+                deactivateAllNavLinks();
+                if (overviewSection) overviewSection.classList.remove('hidden');
+                navOverview.classList.add('active-link');
+            });
+
+            if (navProfile) navProfile.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllSections();
+                deactivateAllNavLinks();
+                if (profileSection) profileSection.classList.remove('hidden');
+                navProfile.classList.add('active-link');
+            });
+
+            if (navContracts) navContracts.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllSections();
+                deactivateAllNavLinks();
+                if (contractsSection) contractsSection.classList.remove('hidden');
+                navContracts.classList.add('active-link');
+            });
+
+            if (navMessages) navMessages.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllSections();
+                deactivateAllNavLinks();
+                if (messagesSection) messagesSection.classList.remove('hidden');
+                navMessages.classList.add('active-link');
+            });
+
+            if (navLogout) navLogout.addEventListener('click', (e) => {
+                e.preventDefault();
+                showLoginPage(); // Show login page on logout
+            });
+
+            // Cards in overview section that link to other sections
+            if (contactBrokerCardLink) contactBrokerCardLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllSections();
+                deactivateAllNavLinks();
+                if (brokerSection) brokerSection.classList.remove('hidden');
+            });
+
+            // Link "Výběr klienta formou dokumentů" to "Moje Smlouvy"
+            if (viewClientSelectionDocs) viewClientSelectionDocs.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllSections();
+                deactivateAllNavLinks();
+                if (contractsSection) contractsSection.classList.remove('hidden');
+                if (navContracts) navContracts.classList.add('active-link');
+            });
+
+            // Original "Moje Smlouvy" card link (still points to contracts section)
+            if (viewContractsCardLink) viewContractsCardLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllSections();
+                deactivateAllNavLinks();
+                if (contractsSection) contractsSection.classList.remove('hidden');
+                if (navContracts) navContracts.classList.add('active-link');
+            });
+
+            // Client profile picture/initials click to go to profile section
+            if (profileImageContainer) profileImageContainer.addEventListener('click', () => {
+                hideAllSections();
+                deactivateAllNavLinks();
+                if (profileSection) profileSection.classList.remove('hidden');
+                if (navProfile) navProfile.classList.add('active-link');
+            });
+
+            // Trigger file input when upload button is clicked
+            if (uploadPhotoButton) uploadPhotoButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent container click from firing
+                if (profileImageUpload) profileImageUpload.click();
+            });
+
+            // Handle file selection for profile image
+            if (profileImageUpload) profileImageUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        setProfileDisplay(e.target.result); // Set the image
+                    };
+                    reader.readAsDataURL(file); // Read file as Base64
+                }
+            });
+
+            // Update initials if full name changes in profile section
+            if (fullNameInput) fullNameInput.addEventListener('input', () => {
+                if (profilePhoto && profilePhoto.classList.contains('hidden')) { // Only update initials if no photo is displayed
+                    setProfileDisplay(null);
+                }
+            });
+
+            // Gemini API Integration for Message Generation
+            if (generateMessageButton) generateMessageButton.addEventListener('click', async () => {
+                const userPrompt = messageInput.value.trim();
+
+                if (!userPrompt) {
+                    alert('Prosím, zadejte text pro vygenerování zprávy.'); // Using alert as a temporary placeholder for a custom modal
+                    return;
+                }
+
+                // Hide previous output and error
+                if (messageOutput) messageOutput.classList.add('hidden');
+                if (errorMessage) errorMessage.classList.add('hidden');
+                if (generatedText) generatedText.textContent = '';
+
+                // Show loading state
+                if (buttonText) buttonText.textContent = 'Generuji...';
+                if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+                if (generateMessageButton) generateMessageButton.disabled = true;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: `Napiš formální návrh zprávy na základě tohoto stručného popisu. Rozviň jej do podrobného a zdvořilého textu. Popis: "${userPrompt}"` }] });
+
+                    const payload = { contents: chatHistory };
+                    const apiKey = ""; // Canvas will automatically provide the API key at runtime
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        if (generatedText) generatedText.textContent = text;
+                        if (messageOutput) messageOutput.classList.remove('hidden');
+                    } else {
+                        console.error('Unexpected API response structure:', result);
+                        if (errorMessage) errorMessage.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('Error calling Gemini API:', error);
+                    if (errorMessage) errorMessage.classList.remove('hidden');
+                } finally {
+                    // Hide loading state
+                    if (buttonText) buttonText.textContent = 'Vygenerovat návrh zprávy ✨';
+                    if (loadingSpinner) loadingSpinner.classList.add('hidden');
+                    if (generateMessageButton) generateMessageButton.disabled = false;
+                }
+            });
+
+            clientAppListenersInitialized = true;
+        }
+
+        // Function to show the client app and hide the login page
+        function showClientApp() {
+            loginPageContainer.classList.add('hidden');
+            clientAppContainer.classList.remove('hidden');
+
+            // Defer the initialization to ensure elements are rendered
+            setTimeout(() => {
+                initializeClientAppListeners();
+                // After initialization, ensure navOverview is clicked only if it exists
+                if (navOverview) {
+                    navOverview.click(); // Default to overview section AFTER initialization
+                } else {
+                    console.warn("navOverview element not found after client app initialization.");
+                }
+            }, 0); // Use setTimeout to defer execution
+        }
+
+        // Function to show the login page and hide the client app
+        function showLoginPage() {
+            clientAppContainer.classList.add('hidden');
+            loginPageContainer.classList.remove('hidden');
+            if (usernameInput) usernameInput.value = 'demo'; // Pre-fill username
+            if (passwordInput) passwordInput.value = 'demo'; // Pre-fill password
+            if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
+        }
+
+
+        // --- Event Listeners ---
+
+        // Login form submission
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault(); // Prevent default form submission
+
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                // Simple validation (for demonstration purposes)
+                // For demo, specific username/password are required
+                if (username === 'demo' && password === 'demo') {
+                    if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
+                    showClientApp(); // Show the client app after successful login
+                } else {
+                    if (loginErrorMessage) {
+                        loginErrorMessage.textContent = 'Nesprávné uživatelské jméno nebo heslo.';
+                        loginErrorMessage.classList.remove('hidden');
+                    }
+                }
+            });
+        }
+
+
+        // Initialize state on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Start with login page visible
+            showLoginPage();
+        });
+    </script>
+</body>
+</html>
